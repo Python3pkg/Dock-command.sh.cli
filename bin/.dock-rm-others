@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage="usage: ${BASH_SOURCE[0]##*/} path ..."
+
+[[ $# == 0 ]] || [[ $1 == "--help" ]] && {
+	echo "$usage"
+	[[ $1 == "--help" ]]; exit # exit 0 if --help
+}
+
+[[ $OSTYPE != *"darwin"* ]] && echo "OS X only" && exit 0
+
+plist=~/Library/Preferences/com.apple.dock.plist
+killall=false
+
+while [[ $# != 0 ]]; do
+	path="$1"
+	shift
+	# `grep -i` - case insensitive
+	defaults read com.apple.dock persistent-others | grep -i -q "$path" || continue
+	grep="$(defaults read com.apple.dock persistent-others | grep '"_CFURLString"' | grep -i -n "$path")"
+	[[ -z $grep ]] && continue
+	n="$(IFS=:;set -- $grep;echo $1)"
+	[[ $killall == false ]] && { ( set -x; launchctl stop com.apple.syncdefaultsd ) || exit; }
+	( set -x; /usr/libexec/PlistBuddy -c "Delete persistent-others:$((n-1))" "$plist" ) || exit
+	killall=true
+done;:
+[[ $killall == true ]] && {
+	( set -x; launchctl start com.apple.syncdefaultsd ) || exit
+	( set -x; killall cfprefsd Dock ) || exit
+}
+:
+

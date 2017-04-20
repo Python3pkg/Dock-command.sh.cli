@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage="usage: ${BASH_SOURCE[0]##*/} item ..."
+
+[[ $# == 0 ]] || [[ $1 == "--help" ]] && {
+	echo "$usage"
+	[[ $1 == "--help" ]]; exit # exit 0 if --help
+}
+
+[[ $OSTYPE != *"darwin"* ]] && echo "OS X only" && exit 0
+
+NL=$'\n'
+apps=
+others=
+while [[ $# != 0 ]]; do
+	[[ $1 != /* ]] && apps="$apps${NL}$1"
+	[[ $1 == /* ]] && others="$others${NL}$1"
+	shift
+done
+[[ -n $apps ]] && {
+	IFS=$'\n';set -- $apps;IFS=
+	( set -x; Dock rm-apps "$@" ) || exit
+}
+[[ -n $others ]] && {
+	IFS=$'\n';set -- $others;IFS=
+	( set -x; Dock rm-others "$@" ) || exit
+}
+:

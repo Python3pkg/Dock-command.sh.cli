@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage="usage: ${BASH_SOURCE[0]##*/} path ..."
+
+[[ $# == 0 ]] || [[ $1 == "--help" ]] && {
+	echo "$usage"
+	[[ $1 == "--help" ]]; exit # exit 0 if --help
+}
+
+[[ $OSTYPE != *"darwin"* ]] && echo "OS X only" && exit 0
+
+# ~/Library/Preferences/com.apple.dock.plist
+new_urls=
+while [[ $# != 0 ]]; do
+	path="$1"
+	shift
+	url="file://${path// /%20}" # encode url
+	# file://$path url quoted
+	defaults read com.apple.dock persistent-others | grep -i -q "$url" && continue
+	new_urls="$new_urls
+$url"
+done
+[[ -z $new_urls ]] && exit 0
+
+( set -x; launchctl stop com.apple.syncdefaultsd )
+
+[[ -z $DISPLAYAS ]]	&& DISPLAYAS=1
+[[ -z $SHOWAS ]] && SHOWAS=3
+
+while IFS= read url; do
+	[ -d "$path" ] && tile_type="directory-tile"
+	[ -f "$path" ] && tile_type="file-tile"
+	xml="<dict>
+<key>tile-data</key>
+<dict>
+	<key>file-data</key>
+	<dict>
+	<!-- 2: folder -->
+	<key>file-type</key>
+	<integer>2</integer>
+	<key>_CFURLString</key>
+	<string>$path</string>
+	<key>_CFURLStringType</key>
+	<integer>0</integer>
+	</dict>
+	
+	<!-- 0:stack (default), 1:folder -->
+	<key>displayas</key>
+	<integer>$DISPLAYAS</integer>
+
+	<!-- 0:auto (default, Beep), 1:Beep, 2:Grid, 3:List -->
+	<key>showas</key>
+	<integer>$SHOWAS</integer>
+</dict>
+<!-- directory-tile, file-tile -->
+<key>tile-type</key>
+<string>$tile_type</string>
+</dict>"
+	( set -x; defaults write com.apple.dock persistent-others -array-add "$xml" ) || exit
+done <<< "$items";:
+
+( set -x; launchctl start com.apple.syncdefaultsd )
+( set -x; killall cfprefsd Dock )

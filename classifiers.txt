@@ -1,0 +1,4 @@
+Topic :: Multimedia
+Topic :: Multimedia :: Sound/Audio
+Topic :: Multimedia :: Sound/Audio :: Players
+Topic :: Multimedia :: Sound/Audio :: Players :: MP3

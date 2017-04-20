@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+set -- "Safari" "TextEdit"
+set -x
+Dock add "$@" # apps

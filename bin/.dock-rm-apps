@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage="usage: ${BASH_SOURCE[0]##*/} app ..."
+
+[[ $# == 0 ]] || [[ $1 == "--help" ]] && {
+	echo "$usage"
+	[[ $1 == "--help" ]]; exit # exit 0 if --help
+}
+
+[[ $OSTYPE != *"darwin"* ]] && echo "OS X only" && exit 0
+
+killall=false
+plist=~/Library/Preferences/com.apple.dock.plist
+
+while [[ $# != 0 ]]; do
+	app="$1"
+	shift
+	for key in "bundle-identifier" "file-label" "_CFURLString"; do
+		grep="$(defaults read com.apple.dock persistent-apps | grep "$key" | grep -n "$app")"
+		[[ -z $grep ]] && continue
+		n="$(IFS=:;set -- $grep;echo $1)"
+		( set -x; /usr/libexec/PlistBuddy -c "Delete persistent-apps:$((n-1))" "$plist" )
+		killall=true
+		continue
+	done
+done
+
+[[ $killall == true ]] && ( set -x; killall Dock );:
+

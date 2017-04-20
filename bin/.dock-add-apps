@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+usage="usage: ${BASH_SOURCE[0]##*/} app ..."
+
+[[ $# == 0 ]] || [[ $1 == "--help" ]] && {
+	echo "$usage"
+	[[ $1 == "--help" ]]; exit # exit 0 if --help
+}
+
+[[ $OSTYPE != *"darwin"* ]] && echo "OS X only" && exit 0
+
+# ~/Library/Preferences/com.apple.dock.plist
+read="$(defaults read com.apple.dock persistent-apps | sed -e 's/"//g' -e 's/;//')"
+# bundles="$(echo "$read" | grep bundle-identifier | awk -F'=' '{print $2}' | sed -e 's/ //')"
+# labels="$(echo "$read" | grep file-label | awk -F'=' '{print $2}' | sed -e 's/ //')"
+old_urls="$(echo "$read" | grep '_CFURLString ' | awk -F'=' '{print $2}' | sed -e 's/ //')"
+
+new_urls=
+while [[ $# != 0 ]]; do
+	path="$(which-app "$1")" || { echo "ERROR: $1 NOT FOUND"; exit 1; }
+	shift
+	new_urls="$new_urls
+file://$path"
+done
+new_urls="${new_urls/
+/}"
+[[ "$old_urls" ==  "$new_urls" ]] && exit 0
+
+( set -x; launchctl stop com.apple.syncdefaultsd )
+( set -x; defaults delete com.apple.dock persistent-apps )
+
+while IFS= read url; do
+	xml="<dict>
+	<key>tile-data</key>
+	<dict>
+		<key>file-data</key>
+		<dict>
+			<key>_CFURLString</key>
+			<string>$url</string>
+			<key>_CFURLStringType</key>
+			<integer>15</integer>
+		</dict>
+	</dict>
+</dict>"
+	( set -x; defaults write com.apple.dock persistent-apps -array-add "$xml" ) || exit
+done <<< "$new_urls";:
+
+( set -x; launchctl start com.apple.syncdefaultsd )
+( set -x; killall cfprefsd Dock )

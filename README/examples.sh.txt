@@ -1,0 +1,6 @@
+# add
+$ Dock add "Sublime Text"
+$ Dock add "Google Chrome" "Firefox" "Terminal"
+
+# rm
+$ Dock rm "com.apple.AddressBook" "com.apple.appstore" "com.apple.FaceTime" "com.apple.iBooksX"

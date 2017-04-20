@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+{ set +x; } 2>/dev/null
+
+echo "usage: dock COMMAND [options]
+
+Available commands:
+	add			add app/path to Dock
+	hide		hide Dock
+	rm			rm app/path from Dock
+	show		show Dock"
